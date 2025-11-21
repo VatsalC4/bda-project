@@ -96,20 +96,18 @@ services:
 
   # Spark Master
   spark-master:
-    image: bitnami/spark:3.5.0
+    image: docker.io/apache/spark:3.5.1
     container_name: spark-master
     restart: always
     environment:
       - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
     ports:
       - "8080:8080"
       - "7077:7077"
+    command: >
+      bash -c "start-master.sh && tail -f /dev/null"
     volumes:
-      - spark_master_data:/opt/bitnami/spark
+      - spark_master_data:/opt/spark
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s
@@ -118,22 +116,20 @@ services:
 
   # Spark Worker
   spark-worker:
-    image: bitnami/spark:3.5.0
+    image: docker.io/apache/spark:3.5.1
     container_name: spark-worker
     restart: always
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=2G
-      - SPARK_WORKER_CORES=2
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
     depends_on:
       - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2G
+    command: >
+      bash -c "start-worker.sh spark://spark-master:7077 && tail -f /dev/null"
     volumes:
-      - spark_worker_data:/opt/bitnami/spark
+      - spark_worker_data:/opt/spark
 
   # Spark Job Service
   spark-job:
@@ -147,6 +143,8 @@ services:
       - hive-server
       - namenode
       - datanode
+    environment:
+      - SPARK_MASTER_URL=spark://spark-master:7077
     volumes:
       - spark_job_data:/opt/spark/jobs
     command: >

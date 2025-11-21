@@ -8,7 +8,7 @@ COPY src ./src
 # Force rebuild by adding timestamp
 RUN echo "Build timestamp: $(date)" && mvn clean package -DskipTests
 
-FROM bitnami/spark:3.5.0
+FROM apache/spark:3.5.3
 
 USER root
 
